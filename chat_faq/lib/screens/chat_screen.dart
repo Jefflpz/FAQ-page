@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/chat_message.dart';
 import '../widgets/input_field.dart';
+import '../services/api_service.dart'; // Importe o serviço da API
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -30,6 +31,7 @@ class _ChatScreenState extends State<ChatScreen> {
   ];
 
   List<Map<String, String>> chatMessages = [];
+  bool _isLoading = false; // Para controlar o loading
 
   void updateTopCard(String novaPergunta, String novaResposta) {
     setState(() {
@@ -43,17 +45,54 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  void _sendMessage(String text) {
+  Future<void> _sendMessage(String text) async {
     setState(() {
-      String botReply = "API em desenvolvimento";
-
+      _isLoading = true;
+      // Adiciona mensagem do usuário imediatamente
       chatMessages.add({
         "user": text,
-        "bot": botReply,
+        "bot": "Processando...", // Placeholder enquanto carrega
       });
-
-      updateTopCard(text, botReply);
     });
+
+    try {
+      // 🔥 CHAMA A API REAL
+      final resultado = await ApiService.sendMessage(text);
+      
+      setState(() {
+        // Remove a mensagem de "Processando..."
+        chatMessages.removeLast();
+        
+        if (resultado['status'] == 'success') {
+          // Adiciona a resposta real da API
+          chatMessages.add({
+            "user": text,
+            "bot": resultado['resposta']!,
+          });
+
+          // Atualiza o card top com pergunta e resposta separadas
+          updateTopCard(resultado['pergunta']!, resultado['resposta']!);
+        } else {
+          // Em caso de erro
+          chatMessages.add({
+            "user": text,
+            "bot": "Erro: ${resultado['resposta']}",
+          });
+        }
+      });
+    } catch (e) {
+      setState(() {
+        chatMessages.removeLast();
+        chatMessages.add({
+          "user": text,
+          "bot": "Erro de conexão: $e",
+        });
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -88,21 +127,26 @@ class _ChatScreenState extends State<ChatScreen> {
                               children: [
                                 ChatMessage(text: msg["user"]!, isUser: true),
                                 const SizedBox(height: 8),
-                                ChatMessage(text: msg["bot"]!, isUser: false),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(
-                                        left: 17, bottom: 6),
-                                    child: Text(
-                                      "Perguntas frequentes atualizadas",
-                                      style: TextStyle(
-                                        color: Colors.grey[400],
-                                        fontSize: 10,
+                                ChatMessage(
+                                  text: msg["bot"]!, 
+                                  isUser: false,
+                                  isLoading: msg["bot"] == "Processando...",
+                                ),
+                                if (msg["bot"] != "Processando...")
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                          left: 17, bottom: 6),
+                                      child: Text(
+                                        "Perguntas frequentes atualizadas",
+                                        style: TextStyle(
+                                          color: Colors.grey[400],
+                                          fontSize: 10,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
                               ],
                             )),
                       ],
@@ -111,8 +155,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 InputField(
                   onSubmitted: (value) {
-                    _sendMessage(value);
+                    if (value.trim().isNotEmpty && !_isLoading) {
+                      _sendMessage(value.trim());
+                    }
                   },
+                  isLoading: _isLoading,
                 ),
               ],
             ),

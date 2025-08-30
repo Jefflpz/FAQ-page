@@ -3,8 +3,14 @@ import 'package:flutter/material.dart';
 class ChatMessage extends StatelessWidget {
   final String text;
   final bool isUser;
+  final bool isLoading;
 
-  const ChatMessage({super.key, required this.text, required this.isUser});
+  const ChatMessage({
+    super.key, 
+    required this.text, 
+    required this.isUser,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,13 +32,22 @@ class ChatMessage extends StatelessWidget {
             bottomRight: isUser ? const Radius.circular(0) : const Radius.circular(18),
           ),
         ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-          ),
-        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation(Colors.white),
+                ),
+              )
+            : Text(
+                text,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
       ),
     );
   }
