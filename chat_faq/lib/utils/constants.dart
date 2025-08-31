@@ -1,3 +1,3 @@
 class Constants {
-  static const String backendUrl = "https://heaven-chatbot.onrender.com";
+  static const String backendUrl = "https://api-faq.onrender.com";
 }
