@@ -1,0 +1,3 @@
+[submodule "api_faq"]
+	path = api_faq
+	url = https://github.com/Jefflpz/api-faq.git
