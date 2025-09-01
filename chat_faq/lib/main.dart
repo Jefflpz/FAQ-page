@@ -1,6 +1,5 @@
+import 'package:bible_chatbot/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
-import '../screens/chat_screen.dart';
-
 void main() {
   runApp(const ChatFAQ());
 }
@@ -13,7 +12,7 @@ class ChatFAQ extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
-      home: const ChatScreen(),
+      home: const SplashScreen(),
     );
   }
 }
