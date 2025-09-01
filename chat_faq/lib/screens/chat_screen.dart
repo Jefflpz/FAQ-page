@@ -140,6 +140,43 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  // Função para realizar logout
+  Future<void> _performLogout() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await ApiService.logout();
+      
+      if (result['success'] == true) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      } else {
+        await ApiService.logout(); // Acessando o método interno para limpeza
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      await ApiService.logout();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -191,7 +228,6 @@ class _ChatScreenState extends State<ChatScreen> {
                           )
                         else
                           for (var item in recentQuestions)
-                            // Widget personalizado que exibe popup em qualquer interação
                             _buildQuestionBoxWithPopup(item),
                         
                         const SizedBox(height: 12),
@@ -225,7 +261,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // Widget personalizado para a box de pergunta com popup
   Widget _buildQuestionBoxWithPopup(Map<String, String> item) {
     return GestureDetector(
       onTap: () {
@@ -246,11 +281,9 @@ class _ChatScreenState extends State<ChatScreen> {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: AbsorbPointer(
-          // Absorve todos os gestos e exibe o popup se não autenticado
           child: ExpandableQuestion(
             question: item["question"]!,
             answer: item["answer"]!,
-            // Adiciona um listener para qualquer interação
             onAnyInteraction: () {
               if (!ApiService.isAuthenticated) {
                 _showPopupIfNotAuthenticated();
@@ -411,12 +444,20 @@ class _ChatScreenState extends State<ChatScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: () async {
-                          await ApiService.logout();
-                          Navigator.pop(context);
-                        },
-                        icon: const Icon(Icons.logout, color: Colors.black),
-                        label: const Text("Sair", style: TextStyle(color: Colors.black)),
+                        onPressed: _isLoading ? null : _performLogout,
+                        icon: _isLoading 
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.black,
+                              ),
+                            )
+                          : const Icon(Icons.logout, color: Colors.black),
+                        label: _isLoading
+                          ? const Text("Saindo...", style: TextStyle(color: Colors.black))
+                          : const Text("Sair", style: TextStyle(color: Colors.black)),
                       ),
                     ),
                   ],
