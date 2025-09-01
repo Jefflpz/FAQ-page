@@ -81,7 +81,7 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 // 🔹 Topo custom (menu, logo, sol)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 12),
+                  padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 54),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -164,10 +164,13 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// Drawer com blur
+  /// Drawer com blur idêntica à da imagem
   Widget _buildBlurDrawer(BuildContext context) {
     return ClipRRect(
-      borderRadius: const BorderRadius.only(topRight: Radius.circular(16), bottomRight: Radius.circular(16)),
+      borderRadius: const BorderRadius.only(
+        topRight: Radius.circular(16),
+        bottomRight: Radius.circular(16),
+      ),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Drawer(
@@ -189,9 +192,18 @@ class _ChatScreenState extends State<ChatScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        Text("Jefferson Lopes",
-                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text("jeffcustodio@gmail.com", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text(
+                          "Jefferson Lopes",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          "jeffcustodio@gmail.com",
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
                       ],
                     )
                   ],
@@ -201,12 +213,20 @@ class _ChatScreenState extends State<ChatScreen> {
                 Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [BoxShadow(color: Colors.purple, blurRadius: 18, spreadRadius: 2)],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.purple[900]!.withOpacity(0.55),
+                        blurRadius: 18,
+                        spreadRadius: 2,
+                      )
+                    ],
                   ),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.deepPurple[300]!,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     onPressed: () {
@@ -215,12 +235,21 @@ class _ChatScreenState extends State<ChatScreen> {
                       });
                       Navigator.pop(context);
                     },
-                    child: const Center(child: Text("Nova conversa", style: TextStyle(color: Colors.white))),
+                    child: const Center(
+                      child: Text("Nova conversa", style: TextStyle(color: Colors.white)),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                const Text("Histórico de conversas", style: TextStyle(color: Colors.white, fontSize: 14)),
-                const SizedBox(height: 10),
+                const SizedBox(height: 20), // antes era 20, diminuí
+                Center(
+                  child: Text(
+                    "Histórico de conversas",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: ListView.builder(
                     itemCount: mockQuestions.length,
@@ -258,19 +287,21 @@ class _ChatScreenState extends State<ChatScreen> {
                     },
                   ),
                 ),
-                // Botão sair
-                Align(
-                  alignment: Alignment.bottomLeft,
+                // 🔹 Botão sair com espaço do fundo
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 40), // sobe o botão
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.logout, color: Colors.black),
                     label: const Text("Sair", style: TextStyle(color: Colors.black)),
                   ),
-                )
+                ),
               ],
             ),
           ),
