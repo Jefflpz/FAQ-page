@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import '../screens/login_screen.dart';
-import '../screens/chat_screen.dart';
 
-class StayDisconnectedPopup extends StatelessWidget {
-  const StayDisconnectedPopup({super.key});
+class ThemeFeaturePopup extends StatelessWidget {
+  const ThemeFeaturePopup({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -17,8 +15,17 @@ class StayDisconnectedPopup extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Ícone do sol
+            const Icon(
+              Icons.wb_sunny_outlined,
+              color: Colors.white,
+              size: 50,
+            ),
+            const SizedBox(height: 16),
+
+            // Texto principal
             const Text(
-              "Faça login ou registre-se para acompanhar as perguntas frequentes",
+              "Essa funcionalidade estará disponível em uma versão futura do aplicativo.",
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
@@ -27,13 +34,10 @@ class StayDisconnectedPopup extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Botão "Ir" -> LoginScreen
+            // Botão OK
             ElevatedButton(
               onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                );
+                Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFB57BFF),
@@ -45,29 +49,10 @@ class StayDisconnectedPopup extends StatelessWidget {
                 elevation: 4,
               ),
               child: const Text(
-                "Ir",
+                "OK",
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            GestureDetector(
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ChatScreen()),
-                );
-              },
-              child: const Text(
-                "Permanecer desconectado",
-                style: TextStyle(
-                  color: Color(0xFFB57BFF),
-                  fontSize: 14,
-                  decoration: TextDecoration.none,
                 ),
               ),
             ),

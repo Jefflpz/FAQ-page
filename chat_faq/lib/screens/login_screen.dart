@@ -248,31 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 30),
-
-                // BOTÃO GOOGLE
-                Center(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading
-                        ? null
-                        : () {
-                            // ação login Google
-                          },
-                    icon: Image.asset("assets/google_logo.png",
-                        height: 24, width: 24),
-                    label: const Text("Google",
-                        style: TextStyle(color: Colors.black, fontSize: 16)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      minimumSize: const Size(120, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      elevation: 6,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

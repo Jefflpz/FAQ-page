@@ -1,12 +1,11 @@
 import 'dart:ui';
+import 'package:bible_chatbot/widgets/question_tile.dart';
 import 'package:flutter/material.dart';
 import '../widgets/chat_message.dart';
 import '../widgets/input_field.dart';
 import '../widgets/expandable_question.dart';
 import '../services/api_service.dart';
-import 'history_chat_screen.dart';
-import '../widgets/stay_disconnected_popup.dart';
-import 'login_screen.dart';
+import '../widgets/theme_feature_popup.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -61,6 +60,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+
   void _loadDefaultQuestions() {
     setState(() {
       recentQuestions = [
@@ -73,15 +73,23 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  void updateTopCard(String novaPergunta, String novaResposta) {
+  void updateTopCard(String novaPergunta, String novaResposta) async {
     if (ApiService.isAuthenticated) {
-      _loadRecentQuestions();
+      await ApiService.salvarPergunta({
+        "question": novaPergunta,
+        "answer": novaResposta,
+      });
+
+      await _loadRecentQuestions();
     } else {
       setState(() {
         if (recentQuestions.length == 4) {
-          recentQuestions.removeAt(0);
+          recentQuestions.removeAt(0); 
         }
-        recentQuestions.add({"question": novaPergunta, "answer": novaResposta});
+        recentQuestions.add({
+          "question": novaPergunta,
+          "answer": novaResposta,
+        });
       });
     }
   }
@@ -113,33 +121,6 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Future<List<Map<String, String>>> _loadAllQuestionsForDrawer() async {
-    if (ApiService.isAuthenticated) {
-      final resultado = await ApiService.getTodasPerguntas();
-      if (resultado['success']) {
-        return List<Map<String, String>>.from(
-          (resultado['perguntas'] as List).map((p) => {
-            'question': p['question'] ?? '',
-            'answer': p['answer'] ?? ''
-          })
-        );
-      }
-    }
-    return recentQuestions;
-  }
-
-  // Função para mostrar o popup se não estiver autenticado
-  void _showPopupIfNotAuthenticated() {
-    if (!ApiService.isAuthenticated) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return const StayDisconnectedPopup();
-        },
-      );
-    }
-  }
-
   // Função para realizar logout
   Future<void> _performLogout() async {
     setState(() {
@@ -152,14 +133,14 @@ class _ChatScreenState extends State<ChatScreen> {
       if (result['success'] == true) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          MaterialPageRoute(builder: (_) => const ChatScreen()),
           (route) => false,
         );
       } else {
         await ApiService.logout(); // Acessando o método interno para limpeza
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          MaterialPageRoute(builder: (_) => const ChatScreen()),
           (route) => false,
         );
       }
@@ -167,7 +148,7 @@ class _ChatScreenState extends State<ChatScreen> {
       await ApiService.logout();
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        MaterialPageRoute(builder: (_) => const ChatScreen()),
         (route) => false,
       );
     } finally {
@@ -210,7 +191,12 @@ class _ChatScreenState extends State<ChatScreen> {
                       Image.asset("assets/iconKairos.png", height: 36),
                       IconButton(
                         icon: const Icon(Icons.wb_sunny_outlined, color: Colors.white),
-                        onPressed: () {},
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => const ThemeFeaturePopup(),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -228,7 +214,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           )
                         else
                           for (var item in recentQuestions)
-                            _buildQuestionBoxWithPopup(item),
+                            ExpandableQuestion(
+                              question: item["question"]!,
+                              answer: item["answer"]!,
+                            ),
                         
                         const SizedBox(height: 12),
                         ...chatMessages.map((msg) => Column(
@@ -261,40 +250,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildQuestionBoxWithPopup(Map<String, String> item) {
-    return GestureDetector(
-      onTap: () {
-        if (ApiService.isAuthenticated) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => HistoryChatScreen(
-                question: item["question"]!,
-                answer: item["answer"]!,
-              ),
-            ),
-          );
-        } else {
-          _showPopupIfNotAuthenticated();
-        }
-      },
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: AbsorbPointer(
-          child: ExpandableQuestion(
-            question: item["question"]!,
-            answer: item["answer"]!,
-            onAnyInteraction: () {
-              if (!ApiService.isAuthenticated) {
-                _showPopupIfNotAuthenticated();
-              }
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildBlurDrawer(BuildContext context) {
     return ClipRRect(
       borderRadius: const BorderRadius.only(
@@ -307,145 +262,121 @@ class _ChatScreenState extends State<ChatScreen> {
           backgroundColor: Colors.grey.withOpacity(0.1),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: FutureBuilder<List<Map<String, String>>>(
-              future: _loadAllQuestionsForDrawer(),
-              builder: (context, snapshot) {
-                final drawerQuestions = snapshot.data ?? recentQuestions;
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 40),
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // 👤 Cabeçalho com usuário
+                Row(
                   children: [
-                    const SizedBox(height: 40),
-                    Row(
+                    const CircleAvatar(
+                      radius: 24,
+                      backgroundColor: Colors.deepPurple,
+                      child: Icon(Icons.person, color: Colors.white, size: 30),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Colors.deepPurple,
-                          child: Icon(Icons.person, color: Colors.white, size: 30),
+                        Text(
+                          _loadingUser
+                              ? "Carregando..."
+                              : userData?['nome'] ?? "Usuário",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _loadingUser
-                                ? "Carregando..."
-                                : userData?['nome'] ?? "Usuário",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              _loadingUser
-                                ? "carregando..."
-                                : userData?['email'] ?? "E-mail não disponível",
-                              style: const TextStyle(color: Colors.grey, fontSize: 12),
-                            ),
-                          ],
-                        )
+                        Text(
+                          _loadingUser
+                              ? "carregando..."
+                              : userData?['email'] ?? "E-mail não disponível",
+                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
                       ],
-                    ),
-                    const SizedBox(height: 20),
+                    )
+                  ],
+                ),
 
-                    Container(
-                      decoration: BoxDecoration(
+                const SizedBox(height: 20),
+
+                // ➕ Nova conversa
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.purple[900]!.withOpacity(0.55),
+                        blurRadius: 18,
+                        spreadRadius: 2,
+                      )
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple[300]!,
+                      shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.purple[900]!.withOpacity(0.55),
-                            blurRadius: 18,
-                            spreadRadius: 2,
-                          )
-                        ],
                       ),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.deepPurple[300]!,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        chatMessages.clear();
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: const Center(
+                      child: Text("Nova conversa", style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                const Center(
+                  child: Text(
+                    "Histórico de conversas",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+
+                // 📜 Lista de perguntas (usa recentQuestions direto)
+                Expanded(
+                  child: _loadingQuestions
+                      ? const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        )
+                      : ListView.builder(
+                          itemCount: recentQuestions.length,
+                          itemBuilder: (context, index) {
+                            final item = recentQuestions[index];
+                            return QuestionTile(
+                              question: item["question"]!,
+                              answer: item["answer"]!,
+                            );
+                          },
                         ),
-                        onPressed: () {
-                          setState(() {
-                            chatMessages.clear();
-                          });
-                          Navigator.pop(context);
-                        },
-                        child: const Center(
-                          child: Text("Nova conversa", style: TextStyle(color: Colors.white)),
+                ),
+
+                // 🚪 Logout (só aparece se o usuário estiver logado)
+                if (ApiService.isAuthenticated)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 40),
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                    ),
-
-                    const SizedBox(height: 20),
-                    const Center(
-                      child: Text(
-                        "Histórico de conversas",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-
-                    Expanded(
-                      child: snapshot.connectionState == ConnectionState.waiting
-                        ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                        : ListView.builder(
-                            itemCount: drawerQuestions.length,
-                            itemBuilder: (context, index) {
-                              final item = drawerQuestions[index];
-                              return GestureDetector(
-                                onTap: () {
-                                  if (ApiService.isAuthenticated) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => HistoryChatScreen(
-                                          question: item["question"]!,
-                                          answer: item["answer"]!,
-                                        ),
-                                      ),
-                                    );
-                                  } else {
-                                    _showPopupIfNotAuthenticated();
-                                  }
-                                },
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.3),
-                                    border: Border.all(color: Colors.white),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: ListTile(
-                                    title: Text(
-                                      item["question"]!.length > 25
-                                          ? '${item["question"]!.substring(0, 25)}...'
-                                          : item["question"]!,
-                                      style: const TextStyle(color: Colors.white),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                    ),
-
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 40),
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: _isLoading ? null : _performLogout,
-                        icon: _isLoading 
+                      onPressed: _isLoading ? null : _performLogout,
+                      icon: _isLoading
                           ? const SizedBox(
                               width: 16,
                               height: 16,
@@ -455,14 +386,12 @@ class _ChatScreenState extends State<ChatScreen> {
                               ),
                             )
                           : const Icon(Icons.logout, color: Colors.black),
-                        label: _isLoading
+                      label: _isLoading
                           ? const Text("Saindo...", style: TextStyle(color: Colors.black))
                           : const Text("Sair", style: TextStyle(color: Colors.black)),
-                      ),
                     ),
-                  ],
-                );
-              }
+                  ),
+               ],
             ),
           ),
         ),
