@@ -461,4 +461,32 @@ class ApiService {
       };
     }
   }
+
+  // SALVAR PERGUNTA
+  static Future<Map<String, dynamic>> salvarPergunta(Map<String, String> pergunta) async {
+    try {
+      final response = await http.post(
+        Uri.parse("${Constants.backendUrl}/salvar-pergunta"),
+        headers: _headers,
+        body: jsonEncode(pergunta),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Pergunta salva com sucesso',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Erro ao salvar pergunta',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Erro de conexão: $e',
+      };
+    }
+  }
 }
