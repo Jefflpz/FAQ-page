@@ -1,6 +1,7 @@
 // widgets/expandable_question.dart
 import 'package:flutter/material.dart';
-import '../widgets/stay_disconnected_popup.dart'; // Import the popup
+import '../widgets/stay_disconnected_popup.dart';
+import '../services/api_service.dart'; // Import ApiService para checar autenticação
 
 class ExpandableQuestion extends StatefulWidget {
   final String question;
@@ -21,23 +22,31 @@ class ExpandableQuestion extends StatefulWidget {
 class _ExpandableQuestionState extends State<ExpandableQuestion> {
   bool _isExpanded = false;
 
-  void _showStayDisconnectedPopup(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return const StayDisconnectedPopup();
-      },
-    );
+  void _handleTap(BuildContext context) {
+    // Dispara callback externa (se existir)
+    widget.onAnyInteraction?.call();
+
+    if (!ApiService.isAuthenticated) {
+      // Se não estiver logado -> abre popup
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return const StayDisconnectedPopup();
+        },
+      );
+      return;
+    }
+
+    // Se estiver logado -> comportamento normal de expandir/colapsar
+    setState(() {
+      _isExpanded = !_isExpanded;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        widget.onAnyInteraction?.call();
-        
-        _showStayDisconnectedPopup(context);
-      },
+      onTap: () => _handleTap(context),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.all(16),
