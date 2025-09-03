@@ -64,24 +64,39 @@ class _ExpandableQuestionState extends State<ExpandableQuestion> {
                 Expanded(
                   child: Text(
                     widget.question,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                    style: TextStyle(
+                      color: _isExpanded ? Colors.grey : Colors.white,
+                      fontSize: _isExpanded ? 14 : 16,
+                      fontWeight: _isExpanded ? FontWeight.w500 : FontWeight.bold,
                     ),
                   ),
                 ),
                 Icon(
                   _isExpanded ? Icons.expand_less : Icons.expand_more,
-                  color: Colors.white,
+                  color: _isExpanded ? Colors.grey : Colors.white,
                 ),
               ],
             ),
+        
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: _isExpanded
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+
             if (_isExpanded) ...[
               const SizedBox(height: 12),
               Text(
                 widget.answer,
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
+                style: const TextStyle(
+                  color: Colors.white, 
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ],
