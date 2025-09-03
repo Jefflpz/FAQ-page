@@ -79,8 +79,8 @@ Você pode usar, modificar e distribuir à vontade, desde que mantenha os crédi
 
 ## 💌 Contato
 
-👨‍💻 Autores: Jefflpz and LauraTavora
-📫 Email: jefferson.lopes@germinare.org.br || laura.tavora@germinare.org.br
+- 👨‍💻 Autores: Jefflpz and LauraTavora
+- 📫 Email: jefferson.lopes@germinare.org.br || laura.tavora@germinare.org.br
 
 ## 🌟 Apoie o Projeto
 
