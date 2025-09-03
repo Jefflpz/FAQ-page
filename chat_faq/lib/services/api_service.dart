@@ -7,7 +7,7 @@ class ApiService {
   static String? _token;
   static Map<String, dynamic>? _currentUser;
 
-  // Método para inicializar o token a partir do armazenamento local
+  // Inicializa dados salvos (chamar no main.dart antes do runApp)
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('auth_token');
@@ -18,15 +18,13 @@ class ApiService {
   }
 
   static String? get token => _token;
-
   static Map<String, dynamic>? get currentUser => _currentUser;
-
   static bool get isAuthenticated => _token != null && _currentUser != null;
 
   static Future<void> _saveAuthData(String token, Map<String, dynamic> user) async {
     _token = token;
     _currentUser = user;
-    
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
     await prefs.setString('current_user', jsonEncode(user));
@@ -35,21 +33,17 @@ class ApiService {
   static Future<void> _clearAuthData() async {
     _token = null;
     _currentUser = null;
-    
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     await prefs.remove('current_user');
   }
 
   static Map<String, String> get _headers {
-    final headers = {
-      "Content-Type": "application/json",
-    };
-    
+    final headers = {"Content-Type": "application/json"};
     if (_token != null) {
       headers["Authorization"] = "Bearer $_token";
     }
-    
     return headers;
   }
 
@@ -62,7 +56,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse("${Constants.backendUrl}/cadastro"),
-        headers: _headers,
+        headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": email,
           "senha": senha,
@@ -100,7 +94,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse("${Constants.backendUrl}/login"),
-        headers: _headers,
+        headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": email,
           "senha": senha,
@@ -109,14 +103,23 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
-        // Salvar token e dados do usuário
-        await _saveAuthData(data['token'], data['user']);
-        
+
+        final String token = data['token'] ?? data['access_token'] ?? '';
+        final user = data['user'] ?? {};
+
+        if (token.isEmpty) {
+          return {
+            'success': false,
+            'message': 'Token não retornado pelo servidor',
+          };
+        }
+
+        await _saveAuthData(token, Map<String, dynamic>.from(user));
+
         return {
           'success': true,
-          'token': data['token'],
-          'user': data['user'],
+          'token': token,
+          'user': user,
           'message': 'Login realizado com sucesso',
         };
       } else {
@@ -142,27 +145,16 @@ class ApiService {
         headers: _headers,
       );
 
-      // Limpar dados locais independentemente da resposta do servidor
       await _clearAuthData();
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'message': 'Logout realizado com sucesso',
-        };
+        return {'success': true, 'message': 'Logout realizado com sucesso'};
       } else {
-        return {
-          'success': false,
-          'message': 'Erro no logout',
-        };
+        return {'success': false, 'message': 'Erro no logout'};
       }
     } catch (e) {
-      // Mesmo com erro de conexão, limpamos os dados locais
       await _clearAuthData();
-      return {
-        'success': false,
-        'message': 'Erro de conexão: $e',
-      };
+      return {'success': false, 'message': 'Erro de conexão: $e'};
     }
   }
 
@@ -171,7 +163,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse("${Constants.backendUrl}/solicitar-redefinicao-senha"),
-        headers: _headers,
+        headers: {"Content-Type": "application/json"}, // 🔹 sem Authorization
         body: jsonEncode({"email": email}),
       );
 
@@ -196,7 +188,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse("${Constants.backendUrl}/redefinir-senha"),
-        headers: _headers,
+        headers: {"Content-Type": "application/json"}, // 🔹 sem Authorization
         body: jsonEncode({
           "token": token,
           "novaSenha": novaSenha,
@@ -231,12 +223,12 @@ class ApiService {
         try {
           final data = jsonDecode(body);
 
-          // Verificar se a resposta tem o formato novo com success/message
+          // Formato novo
           if (data is Map<String, dynamic>) {
             if (data.containsKey('success') && data.containsKey('answer')) {
               final bool success = data['success'] ?? false;
               final String answer = data['answer'] ?? '';
-              
+
               if (answer.contains(':')) {
                 final parts = answer.split(':');
                 final pergunta = parts[0];
@@ -261,7 +253,7 @@ class ApiService {
             }
           }
 
-          // Formato antigo de resposta
+          // Formato antigo
           if (data is Map<String, dynamic> && data.containsKey("answer")) {
             final String answer = data["answer"] ?? "";
 
@@ -351,25 +343,19 @@ class ApiService {
     }
   }
 
-  // VERIFICAR TOKEN (opcional - para verificar se o token ainda é válido)
+  // VERIFICAR TOKEN
   static Future<bool> verificarToken() async {
-    
     if (_token == null) return false;
-    
     try {
-      // Você pode implementar uma rota específica para verificar token
-      // ou simplesmente tentar uma requisição que requer autenticação
       final response = await http.get(
-        Uri.parse("${Constants.backendUrl}/pergunta"),
+        Uri.parse("${Constants.backendUrl}/usuario"),
         headers: _headers,
       );
-      
-      return response.statusCode != 401;
+      return response.statusCode == 200;
     } catch (e) {
       return false;
     }
   }
-
 
   // OBTER DADOS DO USUÁRIO
   static Future<Map<String, dynamic>> getUsuario() async {
@@ -411,10 +397,12 @@ class ApiService {
         final data = jsonDecode(response.body);
         return {
           'success': true,
-          'perguntas': List<Map<String, String>>.from(data['perguntas']?.map((p) => {
-            'question': p['pergunta'] ?? '',
-            'answer': p['resposta'] ?? ''
-          }) ?? []),
+          'perguntas': List<Map<String, String>>.from(
+            data['perguntas']?.map((p) => {
+              'question': p['pergunta'] ?? '',
+              'answer': p['resposta'] ?? ''
+            }) ?? [],
+          ),
         };
       } else {
         return {
@@ -430,7 +418,7 @@ class ApiService {
     }
   }
 
-  // OBTER TODAS AS PERGUNTAS (HISTÓRICO COMPLETO)
+  // OBTER TODAS AS PERGUNTAS
   static Future<Map<String, dynamic>> getTodasPerguntas() async {
     try {
       final response = await http.get(
@@ -442,11 +430,13 @@ class ApiService {
         final data = jsonDecode(response.body);
         return {
           'success': true,
-          'perguntas': List<Map<String, dynamic>>.from(data['perguntas']?.map((p) => {
-            'question': p['pergunta'] ?? '',
-            'answer': p['resposta'] ?? '',
-            'data': p['data_pergunta'] ?? '',
-          }) ?? []),
+          'perguntas': List<Map<String, dynamic>>.from(
+            data['perguntas']?.map((p) => {
+              'question': p['pergunta'] ?? '',
+              'answer': p['resposta'] ?? '',
+              'data': p['data_pergunta'] ?? '',
+            }) ?? [],
+          ),
         };
       } else {
         return {
@@ -472,15 +462,9 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'message': 'Pergunta salva com sucesso',
-        };
+        return {'success': true, 'message': 'Pergunta salva com sucesso'};
       } else {
-        return {
-          'success': false,
-          'message': 'Erro ao salvar pergunta',
-        };
+        return {'success': false, 'message': 'Erro ao salvar pergunta'};
       }
     } catch (e) {
       return {

@@ -1,10 +1,10 @@
 import 'package:bible_chatbot/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:bible_chatbot/services/api_service.dart'; // Importe o serviço
+import 'package:bible_chatbot/services/api_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await ApiService.init(); // (carrega token salvo)
+  await ApiService.init();
   runApp(const ChatFAQ());
 }
 
