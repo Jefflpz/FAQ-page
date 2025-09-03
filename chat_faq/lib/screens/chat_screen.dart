@@ -94,32 +94,35 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Future<void> _sendMessage(String text) async {
-    setState(() {
-      _isLoading = true;
-      chatMessages.add({"user": text, "bot": "Processando..."});
-    });
+Future<void> _sendMessage(String text) async {
+  setState(() {
+    _isLoading = true;
+    chatMessages.add({"user": text, "bot": "Processando..."});
+  });
 
-    try {
-      final resultado = await ApiService.sendMessage(text);
-      setState(() {
-        chatMessages.removeLast();
-        if (resultado['status'] == 'success') {
-          chatMessages.add({"user": text, "bot": resultado['resposta']!});
-          updateTopCard(resultado['pergunta']!, resultado['resposta']!);
-        } else {
-          chatMessages.add({"user": text, "bot": "Erro: ${resultado['resposta']}"});
-        }
-      });
-    } catch (e) {
-      setState(() {
-        chatMessages.removeLast();
-        chatMessages.add({"user": text, "bot": "Erro de conexão: $e"});
-      });
-    } finally {
-      setState(() => _isLoading = false);
-    }
+  try {
+    final resultado = await ApiService.sendMessage(text);
+    setState(() {
+      chatMessages.removeLast();
+      final resposta = resultado['resposta'] ?? "Sem resposta do servidor";
+      final pergunta = resultado['pergunta'] ?? text;
+
+      if (resultado['status'] == 'success') {
+        chatMessages.add({"user": text, "bot": resposta});
+        updateTopCard(pergunta, resposta);
+      } else {
+        chatMessages.add({"user": text, "bot": "Erro: $resposta"});
+      }
+    });
+  } catch (e) {
+    setState(() {
+      chatMessages.removeLast();
+      chatMessages.add({"user": text, "bot": "Erro de conexão: $e"});
+    });
+  } finally {
+    setState(() => _isLoading = false);
   }
+}
 
   // Função para realizar logout
   Future<void> _performLogout() async {
