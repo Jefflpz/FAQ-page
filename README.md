@@ -85,7 +85,7 @@ Você pode usar, modificar e distribuir à vontade, desde que mantenha os crédi
 ## 🌟 Apoie o Projeto
 
 Se este projeto foi útil para você:
-⭐ Deixe uma estrela no repositório – isso ajuda muito e inspira a continuar desenvolvendo!
+- ⭐ Deixe uma estrela no repositório – isso ajuda muito e inspira a continuar desenvolvendo!
 
 ## 🔥 Conclusão
 
