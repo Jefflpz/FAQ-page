@@ -210,138 +210,102 @@ class ApiService {
 
   // ENVIAR MENSAGEM/PERGUNTA
   static Future<Map<String, dynamic>> sendMessage(String message) async {
-    try {
-      final response = await http.post(
-        Uri.parse("${Constants.backendUrl}/pergunta"),
-        headers: _headers,
-        body: jsonEncode({"pergunta": message}),
-      );
+  try {
+    // Header: inclui Authorization apenas se o usuário estiver logado
+    final headers = {"Content-Type": "application/json"};
+    if (isAuthenticated && _token != null) {
+      headers["Authorization"] = "Bearer $_token";
+    }
 
-      if (response.statusCode == 200) {
-        final body = response.body;
+    final response = await http.post(
+      Uri.parse("${Constants.backendUrl}/pergunta"),
+      headers: headers,
+      body: jsonEncode({"pergunta": message}),
+    );
 
-        try {
-          final data = jsonDecode(body);
+    if (response.statusCode == 200) {
+      final body = response.body;
 
-          // Formato novo
-          if (data is Map<String, dynamic>) {
-            if (data.containsKey('success') && data.containsKey('answer')) {
-              final bool success = data['success'] ?? false;
-              final String answer = data['answer'] ?? '';
+      try {
+        final data = jsonDecode(body);
 
-              if (answer.contains(':')) {
-                final parts = answer.split(':');
-                final pergunta = parts[0];
-                final resposta = parts.sublist(1).join(':');
+        // Caso seja mapa com answer (novo formato)
+        if (data is Map<String, dynamic>) {
+          final String answer = data['answer']?.toString() ?? message;
+          final String pergunta = data['question']?.toString() ?? message;
+          return {
+            'pergunta': pergunta,
+            'resposta': answer.contains(':') ? answer.split(':').sublist(1).join(':') : answer,
+            'status': (data['success'] ?? true) ? 'success' : 'error',
+            'success': data['success'] ?? true,
+            'message': data['message'] ?? '',
+          };
+        }
 
-                return {
-                  'pergunta': pergunta,
-                  'resposta': resposta,
-                  'status': success ? 'success' : 'error',
-                  'success': success,
-                  'message': data['message'] ?? '',
-                };
-              } else {
-                return {
-                  'pergunta': message,
-                  'resposta': answer,
-                  'status': success ? 'success' : 'error',
-                  'success': success,
-                  'message': data['message'] ?? '',
-                };
-              }
-            }
-          }
-
-          // Formato antigo
-          if (data is Map<String, dynamic> && data.containsKey("answer")) {
-            final String answer = data["answer"] ?? "";
-
-            if (answer.contains(':')) {
-              final parts = answer.split(':');
-              final pergunta = parts[0];
-              final resposta = parts.sublist(1).join(':');
-
-              return {
-                'pergunta': pergunta,
-                'resposta': resposta,
-                'status': 'success',
-                'success': true,
-              };
-            } else {
-              return {
-                'pergunta': message,
-                'resposta': answer,
-                'status': 'success',
-                'success': true,
-              };
-            }
-          } else if (data is String) {
-            if (data.contains(':')) {
-              final parts = data.split(':');
-              final pergunta = parts[0];
-              final resposta = parts.sublist(1).join(':');
-
-              return {
-                'pergunta': pergunta,
-                'resposta': resposta,
-                'status': 'success',
-                'success': true,
-              };
-            } else {
-              return {
-                'pergunta': message,
-                'resposta': data,
-                'status': 'success',
-                'success': true,
-              };
-            }
-          } else {
+        // Caso seja String
+        if (data is String) {
+          if (data.contains(':')) {
+            final parts = data.split(':');
             return {
-              'pergunta': message,
-              'resposta': 'Resposta inesperada do servidor.',
-              'status': 'error',
-              'success': false,
-            };
-          }
-        } catch (e) {
-          if (body.contains(':')) {
-            final parts = body.split(':');
-            final pergunta = parts[0];
-            final resposta = parts.sublist(1).join(':');
-
-            return {
-              'pergunta': pergunta,
-              'resposta': resposta,
+              'pergunta': parts[0],
+              'resposta': parts.sublist(1).join(':'),
               'status': 'success',
               'success': true,
             };
           } else {
             return {
               'pergunta': message,
-              'resposta': body,
+              'resposta': data,
               'status': 'success',
               'success': true,
             };
           }
         }
-      } else {
+
+        // Formato inesperado
         return {
           'pergunta': message,
-          'resposta': 'Erro ao conectar com o servidor (${response.statusCode})',
+          'resposta': 'Resposta inesperada do servidor.',
           'status': 'error',
           'success': false,
         };
+      } catch (e) {
+        // Se jsonDecode falhar, tenta separar ":" manualmente
+        if (body.contains(':')) {
+          final parts = body.split(':');
+          return {
+            'pergunta': parts[0],
+            'resposta': parts.sublist(1).join(':'),
+            'status': 'success',
+            'success': true,
+          };
+        } else {
+          return {
+            'pergunta': message,
+            'resposta': body,
+            'status': 'success',
+            'success': true,
+          };
+        }
       }
-    } catch (e) {
+    } else {
       return {
         'pergunta': message,
-        'resposta': 'Erro: não foi possível se conectar ao backend. Detalhe: $e',
+        'resposta': 'Erro ao conectar com o servidor (${response.statusCode})',
         'status': 'error',
         'success': false,
       };
     }
+  } catch (e) {
+    return {
+      'pergunta': message,
+      'resposta': 'Erro: não foi possível se conectar ao backend. Detalhe: $e',
+      'status': 'error',
+      'success': false,
+    };
   }
+}
+
 
   // VERIFICAR TOKEN
   static Future<bool> verificarToken() async {
