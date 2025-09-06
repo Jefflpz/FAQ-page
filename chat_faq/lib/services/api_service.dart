@@ -210,101 +210,46 @@ class ApiService {
 
   // ENVIAR MENSAGEM/PERGUNTA
   static Future<Map<String, dynamic>> sendMessage(String message) async {
-  try {
-    // Header: inclui Authorization apenas se o usuário estiver logado
-    final headers = {"Content-Type": "application/json"};
-    if (isAuthenticated && _token != null) {
-      headers["Authorization"] = "Bearer $_token";
-    }
+    try {
+      final headers = {"Content-Type": "application/json"};
+      if (_token != null) {
+        headers["Authorization"] = "Bearer $_token";
+      }
 
-    final response = await http.post(
-      Uri.parse("${Constants.backendUrl}/pergunta"),
-      headers: headers,
-      body: jsonEncode({"pergunta": message}),
-    );
+      final response = await http.post(
+        Uri.parse("${Constants.backendUrl}/pergunta"),
+        headers: headers,
+        body: jsonEncode({"pergunta": message}),
+      );
 
-    if (response.statusCode == 200) {
-      final body = response.body;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
 
-      try {
-        final data = jsonDecode(body);
-
-        // Caso seja mapa com answer (novo formato)
-        if (data is Map<String, dynamic>) {
-          final String answer = data['answer']?.toString() ?? message;
-          final String pergunta = data['question']?.toString() ?? message;
-          return {
-            'pergunta': pergunta,
-            'resposta': answer.contains(':') ? answer.split(':').sublist(1).join(':') : answer,
-            'status': (data['success'] ?? true) ? 'success' : 'error',
-            'success': data['success'] ?? true,
-            'message': data['message'] ?? '',
-          };
-        }
-
-        // Caso seja String
-        if (data is String) {
-          if (data.contains(':')) {
-            final parts = data.split(':');
-            return {
-              'pergunta': parts[0],
-              'resposta': parts.sublist(1).join(':'),
-              'status': 'success',
-              'success': true,
-            };
-          } else {
-            return {
-              'pergunta': message,
-              'resposta': data,
-              'status': 'success',
-              'success': true,
-            };
-          }
-        }
-
-        // Formato inesperado
+        return {
+          'pergunta': data['question'] ?? message,
+          'resposta': data['answer'] ?? "Sem resposta",
+          'status': (data['success'] ?? true) ? 'success' : 'error',
+          'success': data['success'] ?? true,
+          'message': data['message'] ?? '',
+        };
+      } else {
         return {
           'pergunta': message,
-          'resposta': 'Resposta inesperada do servidor.',
+          'resposta': 'Erro ao conectar com o servidor (${response.statusCode})',
           'status': 'error',
           'success': false,
         };
-      } catch (e) {
-        // Se jsonDecode falhar, tenta separar ":" manualmente
-        if (body.contains(':')) {
-          final parts = body.split(':');
-          return {
-            'pergunta': parts[0],
-            'resposta': parts.sublist(1).join(':'),
-            'status': 'success',
-            'success': true,
-          };
-        } else {
-          return {
-            'pergunta': message,
-            'resposta': body,
-            'status': 'success',
-            'success': true,
-          };
-        }
       }
-    } else {
+    } catch (e) {
       return {
         'pergunta': message,
-        'resposta': 'Erro ao conectar com o servidor (${response.statusCode})',
+        'resposta': 'Erro: não foi possível se conectar ao backend. Detalhe: $e',
         'status': 'error',
         'success': false,
       };
     }
-  } catch (e) {
-    return {
-      'pergunta': message,
-      'resposta': 'Erro: não foi possível se conectar ao backend. Detalhe: $e',
-      'status': 'error',
-      'success': false,
-    };
   }
-}
+
 
 
   // VERIFICAR TOKEN
@@ -407,28 +352,6 @@ class ApiService {
           'success': false,
           'message': 'Erro ao buscar histórico',
         };
-      }
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Erro de conexão: $e',
-      };
-    }
-  }
-
-  // SALVAR PERGUNTA
-  static Future<Map<String, dynamic>> salvarPergunta(Map<String, String> pergunta) async {
-    try {
-      final response = await http.post(
-        Uri.parse("${Constants.backendUrl}/salvar-pergunta"),
-        headers: _headers,
-        body: jsonEncode(pergunta),
-      );
-
-      if (response.statusCode == 200) {
-        return {'success': true, 'message': 'Pergunta salva com sucesso'};
-      } else {
-        return {'success': false, 'message': 'Erro ao salvar pergunta'};
       }
     } catch (e) {
       return {

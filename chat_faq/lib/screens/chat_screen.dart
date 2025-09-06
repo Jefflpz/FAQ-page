@@ -73,26 +73,21 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  void updateTopCard(String novaPergunta, String novaResposta) async {
-    if (ApiService.isAuthenticated) {
-      await ApiService.salvarPergunta({
+  void updateTopCard(String novaPergunta, String novaResposta) {
+    setState(() {
+      // Garante limite de 4 cards
+      if (recentQuestions.length == 4) {
+        recentQuestions.removeAt(0); 
+      }
+
+      // adiciona a nova no final (embaixo)
+      recentQuestions.add({
         "question": novaPergunta,
         "answer": novaResposta,
       });
-
-      await _loadRecentQuestions();
-    } else {
-      setState(() {
-        if (recentQuestions.length == 4) {
-          recentQuestions.removeAt(0); 
-        }
-        recentQuestions.add({
-          "question": novaPergunta,
-          "answer": novaResposta,
-        });
-      });
-    }
+    });
   }
+
 
 Future<void> _sendMessage(String text) async {
   setState(() {
