@@ -45,20 +45,40 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadRecentQuestions() async {
+    debugPrint("DEBUG(_loadRecentQuestions): Iniciando...");
+
     if (ApiService.isAuthenticated) {
+      debugPrint("DEBUG(_loadRecentQuestions): Usuário autenticado, chamando getPerguntasRecentes...");
       final resultado = await ApiService.getPerguntasRecentes();
-      if (resultado['success']) {
+      debugPrint("DEBUG(_loadRecentQuestions): Resultado -> $resultado");
+
+      if (resultado['success'] == true) {
+        final List<dynamic> lista = (resultado['perguntas'] ?? const []) as List<dynamic>;
+
+        // Garante que cada item é Map<String,String>
+        final normalized = lista.map<Map<String, String>>((e) {
+          final m = (e is Map) ? e as Map : const {};
+          return {
+            'question': (m['question'] ?? '').toString(),
+            'answer'  : (m['answer']  ?? '').toString(),
+          };
+        }).toList();
+
         setState(() {
-          recentQuestions = List<Map<String, String>>.from(resultado['perguntas'] ?? []);
+          recentQuestions = normalized;
           _loadingQuestions = false;
         });
+        debugPrint("DEBUG(_loadRecentQuestions): Atualizado recentQuestions=${recentQuestions.length}");
       } else {
+        debugPrint("DEBUG(_loadRecentQuestions): Falha no backend -> ${resultado['message']}");
         _loadDefaultQuestions();
       }
     } else {
+      debugPrint("DEBUG(_loadRecentQuestions): Usuário NÃO autenticado, carregando default.");
       _loadDefaultQuestions();
     }
   }
+
 
 
   void _loadDefaultQuestions() {
@@ -89,35 +109,43 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
 
-Future<void> _sendMessage(String text) async {
-  setState(() {
-    _isLoading = true;
-    chatMessages.add({"user": text, "bot": "Processando..."});
-  });
-
-  try {
-    final resultado = await ApiService.sendMessage(text);
+  Future<void> _sendMessage(String text) async {
     setState(() {
-      chatMessages.removeLast();
-      final resposta = resultado['resposta'] ?? "Sem resposta do servidor";
-      final pergunta = resultado['pergunta'] ?? text;
+      _isLoading = true;
+      chatMessages.add({"user": text, "bot": "Processando..."});
+    });
 
-      if (resultado['status'] == 'success') {
-        chatMessages.add({"user": text, "bot": resposta});
-        updateTopCard(pergunta, resposta);
-      } else {
-        chatMessages.add({"user": text, "bot": "Erro: $resposta"});
-      }
-    });
-  } catch (e) {
-    setState(() {
-      chatMessages.removeLast();
-      chatMessages.add({"user": text, "bot": "Erro de conexão: $e"});
-    });
-  } finally {
-    setState(() => _isLoading = false);
+    try {
+      final resultado = await ApiService.sendMessage(text);
+      setState(() {
+        chatMessages.removeLast();
+        final resposta = resultado['resposta'] ?? "Sem resposta do servidor";
+        final pergunta = resultado['pergunta'] ?? text;
+
+        if (resultado['status'] == 'success') {
+          chatMessages.add({"user": text, "bot": resposta});
+
+          if (!ApiService.isAuthenticated) {
+            // Deslogado → atualiza apenas os cards locais
+            updateTopCard(pergunta, resposta);
+          } else {
+            // Logado → recarrega do backend para refletir histórico atualizado
+            _loadRecentQuestions();
+          }
+        } else {
+          chatMessages.add({"user": text, "bot": "Erro: $resposta"});
+        }
+      });
+    } catch (e) {
+      setState(() {
+        chatMessages.removeLast();
+        chatMessages.add({"user": text, "bot": "Erro de conexão: $e"});
+      });
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
-}
+
 
   // Função para realizar logout
   Future<void> _performLogout() async {
@@ -233,7 +261,6 @@ Future<void> _sendMessage(String text) async {
                     ),
                   ),
                 ),
-
                 InputField(
                   onSubmitted: (value) {
                     if (value.trim().isNotEmpty && !_isLoading) _sendMessage(value.trim());

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/constants.dart';
@@ -302,30 +303,37 @@ class ApiService {
         headers: _headers,
       );
 
-      if (response.statusCode == 200) {
+      debugPrint("DEBUG(ApiService.getPerguntasRecentes): status=${response.statusCode}");
+      debugPrint("DEBUG(ApiService.getPerguntasRecentes): raw body=${response.body}");
+
+      if (response.statusCode == 200 || response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return {
-          'success': true,
-          'perguntas': List<Map<String, String>>.from(
-            data['perguntas']?.map((p) => {
-              'question': p['pergunta'] ?? '',
-              'answer': p['resposta'] ?? ''
-            }) ?? [],
-          ),
-        };
+
+        final List<dynamic> arr = (data is Map && data['perguntas'] is List)
+            ? (data['perguntas'] as List)
+            : const [];
+
+        // Normaliza cada item para {question:String, answer:String}
+        final List<Map<String, String>> perguntas = arr.map<Map<String, String>>((item) {
+          final map = (item is Map) ? item as Map<String, dynamic> : const <String, dynamic>{};
+          final q = (map['question'] ?? map['pergunta'] ?? '').toString();
+          final a = (map['answer'] ?? map['resposta'] ?? '').toString();
+          return {'question': q, 'answer': a};
+        }).toList();
+
+        debugPrint("DEBUG(ApiService.getPerguntasRecentes): normalizado=${perguntas.length} itens");
+        return {'success': true, 'perguntas': perguntas};
       } else {
-        return {
-          'success': false,
-          'message': 'Erro ao buscar perguntas',
-        };
+        debugPrint("DEBUG(ApiService.getPerguntasRecentes): status != 200");
+        return {'success': false, 'message': 'Erro ao buscar perguntas (${response.statusCode})'};
       }
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Erro de conexão: $e',
-      };
+    } catch (e, st) {
+      debugPrint("DEBUG(ApiService.getPerguntasRecentes): EXCEPTION -> $e");
+      debugPrint("STACKTRACE:\n$st");
+      return {'success': false, 'message': 'Erro de conexão: $e'};
     }
   }
+
 
   // OBTER TODAS AS PERGUNTAS
   static Future<Map<String, dynamic>> getTodasPerguntas() async {
